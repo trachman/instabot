@@ -183,7 +183,7 @@ if __name__ == "__main__":
 	
 	""" Methods """
 	# a slice of the first two user entered arguments
-	username, password = args[1:3]
+	(username, password) = args[1:3]
 	print(username, password)
 	# instabot = Bot(username, password)
 	# instabot.update_follower_db(current_followers)
