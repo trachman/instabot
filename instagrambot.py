@@ -4,10 +4,10 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from sys import argv as args
-""" this is practice dev area for the instagram bot """
 
-class Bot:
-	def __init__(self, username, password):
+class InstaBot:
+	def __init__(self, username, password, db_location):
+		self.db_location = db_location
 		self.username = username
 		self.password = password
 		self.driver = webdriver.Chrome()
@@ -26,6 +26,9 @@ class Bot:
 		self.driver.find_element_by_xpath(path_to_mypage).click()
 		time.sleep(5)
 
+	""" 
+	Utility methods 
+	"""
 	def quit_driver(self):
 		""" shuts down the driver """
 		self.driver.quit() 
@@ -84,18 +87,9 @@ class Bot:
 				cleaned.append(name.text)
 		self.go_home_from_list() 
 		return cleaned
-
-	def write_to_db(self, file_location, data):
-		""" writes and formats data """
-		with open(file_location, 'w+') as file:
-			for i, line in enumerate(data):
-				if i == len(data)-1:
-					file.write(line)
-				else:
-					file.write(line + '\n')
 	
 	""" 
-	Following two functions are pointer functions which tells write_to_db where and what to write
+	Following two functions are the functions which informs write_to_db where and what to write
 	"""
 	def update_follower_db(self, file_location):
 		current_followers = self.get_followers()
@@ -107,9 +101,8 @@ class Bot:
 
 	def db_shutdown(self):
 		""" gets run only when unfollowers are checked and updated """
-		db_location = '/Users/tristanrachman/Dev/Dashboard/instagram_database/'
-		new_files = [db_location+'followers.txt', db_location+'following.txt']
-		legacy_files = [db_location+'previous_followers.txt', db_location+'previous_following.txt']
+		new_files = [self.db_location + '/database/followers.txt', db_location + '/database/following.txt']
+		legacy_files = [self.db_location + '/database/previous_followers.txt', self.db_location + '/database/previous_following.txt']
 		for i, file in enumerate(new_files):
 			shutil.copy(file, legacy_files[i])
 
@@ -121,9 +114,9 @@ class Bot:
 		return cleaned
 
 	def update_no_follow_back(self):
-		current_followers = '/Users/tristanrachman/Dev/Dashboard/instagram_database/followers.txt'
-		current_following = '/Users/tristanrachman/Dev/Dashboard/instagram_database/following.txt'
-		no_follow_back = '/Users/tristanrachman/Dev/Dashboard/instagram_database/usersthatdontfollowback.txt'
+		current_followers = self.db_location + '/database/followers.txt'
+		current_following = self.db_location + '/database/following.txt'
+		no_follow_back = self.db_location + '/database/usersthatdontfollowback.txt'
 
 		with open(current_followers, 'r') as file:
 			followers_dirty = file.readlines()
@@ -146,9 +139,9 @@ class Bot:
 
 	def update_unfollowers(self):
 		""" Update unfollowers """
-		current_followers = '/Users/tristanrachman/Dev/Dashboard/instagram_database/followers.txt'
-		legacy_followers = '/Users/tristanrachman/Dev/Dashboard/instagram_database/previous_followers.txt'
-		unfollowers = '/Users/tristanrachman/Dev/Dashboard/instagram_database/unfollowers.txt'
+		current_followers = self.db_location + '/database/followers.txt'
+		legacy_followers = self.db_location + '/database/previous_followers.txt'
+		unfollowers = self.db_location + '/database/unfollowers.txt'
 		
 		with open(current_followers, 'r') as file:
 			current_followers_ls_dirty = file.readlines()
@@ -174,33 +167,42 @@ class Bot:
 						file.write(name)
 					else:
 						file.write('\n'+name)
+	
+	def write_to_db(self, file_location, data):
+		with open(file_location, 'w+') as file:
+			for i, line in enumerate(data):
+				if i == len(data)-1:
+					file.write(line)
+				else:
+					file.write(line + '\n')
 
 if __name__ == "__main__":
-	""" Database locations """
-	current_followers = '/Users/tristanrachman/Dev/Dashboard/instagram_database/followers.txt'
-	current_following = '/Users/tristanrachman/Dev/Dashboard/instagram_database/following.txt'
-	unfollowers = '/Users/tristanrachman/Dev/Dashboard/instagram_database/unfollowers.txt'
+	""" 'Database' locations """
+	db_location = os.path.dirname(os.path.abspath(__file__))
+	current_followers = db_location + '/database/followers.txt'
+	current_following = db_location + '/database/following.txt'
+	unfollowers = db_location + '/database/unfollowers.txt'
 	
 	""" Methods """
-	# a slice of the first two user entered arguments
-	(username, password) = args[1:3]
-	print(username, password)
-	# instabot = Bot(username, password)
-	# instabot.update_follower_db(current_followers)
-	# instabot.update_following_db(current_following)
-	# instabot.update_unfollowers()
-	# instabot.update_no_follow_back()
+	try:
+		(username, password) = args[1:3]
+		instabot = InstaBot(username, password, db_location)
+		instabot.update_follower_db(current_followers)
+		instabot.update_following_db(current_following)
+		instabot.update_unfollowers()
+		instabot.update_no_follow_back()
+		
+		# closing process
+		time.sleep(2)
+		instabot.db_shutdown()
+		instabot.quit_driver()
+	except ValueError:
+		print('No username and/or password inputted.')
 	
-	# closing process
-	# time.sleep(2)
-	# instabot.db_shutdown()
-	# instabot.quit_driver()
-
 	"""
 	TODO:
 	- create a map to store as much personal account data as possible on everyone
 	- login system to check other accounts, use database to organize by account, aka create a new db if a new account is used to login
-	- unfollowers list
 	- who you follow but they don't follow you back 
 	- incorporate password hashing into this
 
